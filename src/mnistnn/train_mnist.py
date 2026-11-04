@@ -17,6 +17,7 @@ from mnistnn.mnist_data_loader import (
     MNISTImagesInfo,
     MNISTLabelsInfo,
 )
+from mnistnn.utils.images import random_shift_and_rotate
 from mnistnn.visualize_mnist import visualize_mnist
 
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ def _normalize_images(images: np.ndarray) -> np.ndarray:
 
 
 def train_mnist(
-    epochs: int = 15,
+    epochs: int = 25,
     batch_size: int = 64,
     learning_rate: float = 0.05,
     momentum: float = 0.9,
@@ -176,8 +177,9 @@ def train_mnist(
             batch_indices: npt.NDArray[np.int64] = shuffled_indices[
                 start : start + batch_size
             ]
-            batch_images: np.ndarray = _normalize_images(
-                train_images[batch_indices]
+            batch_images: np.ndarray = random_shift_and_rotate(
+                _normalize_images(train_images[batch_indices]),
+                rng,
             )
             # Get the correct labels for the current batch
             correct_labels: np.ndarray = train_labels[batch_indices]
