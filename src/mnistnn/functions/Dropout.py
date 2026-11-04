@@ -27,7 +27,7 @@ class Dropout(Operation):
 
     def _output(self) -> np.ndarray:
         """Apply inverted dropout in train mode; identity in eval mode."""
-        input_: np.ndarray = self.require_input()
+        input_: np.ndarray = self._require_input()
         if (not self.training) or self.rate == 0.0:
             self.mask = None
             return input_

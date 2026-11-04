@@ -68,7 +68,7 @@ class MNISTNeuralNetwork:
 
         return x
 
-    def backward(self, output_grad: np.ndarray) -> np.ndarray:
+    def _backward(self, output_grad: np.ndarray) -> np.ndarray:
         """Perform a backward pass through the network."""
         input_grad: np.ndarray = output_grad
 
@@ -77,13 +77,13 @@ class MNISTNeuralNetwork:
 
         return input_grad
 
-    def compute_loss(
+    def _compute_loss(
         self, predictions: np.ndarray, targets: np.ndarray
     ) -> float:
         """Compute the cross-entropy loss."""
         return self.loss_fn.forward(predictions, targets)
 
-    def update_parameters(
+    def _update_parameters(
         self,
         learning_rate: float,
         momentum: float = 0.9,
@@ -133,14 +133,14 @@ class MNISTNeuralNetwork:
         predictions: np.ndarray = self.forward(x, training=True)
 
         # Compute loss
-        loss: float = self.compute_loss(predictions, y)
+        loss: float = self._compute_loss(predictions, y)
 
         # Backward pass
         grad: np.ndarray = self.loss_fn.backward()
-        self.backward(grad)
+        self._backward(grad)
 
         # Update parameters
-        self.update_parameters(learning_rate, momentum, weight_decay)
+        self._update_parameters(learning_rate, momentum, weight_decay)
 
         return loss
 

@@ -12,10 +12,10 @@ class Sigmoid(Operation):
     def _output(self) -> np.ndarray:
         """Forward Pass during Prediction."""
         ## The output value of this function is stored in output through forward function in Operation class
-        return as_array(1 / (1 + np.exp(self.require_input() * -1)))
+        return as_array(1 / (1 + np.exp(self._require_input() * -1)))
 
     def _input_grad(self, grad: np.ndarray) -> np.ndarray:
         """Backward Pass during Training."""
-        output = self.require_output()
+        output = self._require_output()
         sigmoid_derivative = output * (1 - output)
         return as_array(grad * sigmoid_derivative)

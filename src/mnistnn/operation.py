@@ -16,13 +16,13 @@ class Operation(ABC):
         self.output: np.ndarray | None = None
         self.input_grad: np.ndarray | None = None
 
-    def require_input(self) -> np.ndarray:
+    def _require_input(self) -> np.ndarray:
         """Return the stored input, or raise if forward has not run."""
         if self.input_ is None:
             raise RuntimeError("Operation input is not available.")
         return self.input_
 
-    def require_output(self) -> np.ndarray:
+    def _require_output(self) -> np.ndarray:
         """Return the stored output, or raise if forward has not run."""
         if self.output is None:
             raise RuntimeError("Operation output is not available.")

@@ -2,6 +2,22 @@
 
 From-scratch NumPy neural network for MNIST digit classification, plus Black, Ruff, and MyPy for code quality.
 
+## Results
+
+Evaluation metric is **top-1 accuracy on the official MNIST test set** (10,000 images). Training loss is mean batch cross-entropy over the epoch. Numbers below are from completed default runs logged in `log/mnist-training.log` and can vary slightly by random seed.
+
+| Metric | Typical value |
+|---|---|
+| Test accuracy (final epoch) | **~97.6–97.9%** |
+| Test accuracy (best epoch during training) | **~97.8–97.9%** |
+| Train loss (final epoch) | ~0.17–0.20 |
+| Epochs | 25 |
+| Wall time (CPU, approx.) | ~2 minutes |
+
+**How to read these numbers:** report the **final-epoch** test accuracy as the result for the model returned by `train_mnist()`. Peak-over-epochs is sometimes slightly higher but is not checkpointed unless you add that yourself.
+
+For context, a small fully connected NumPy MLP on MNIST commonly lands in the high 97% range. Small CNNs usually push past 99%; this project intentionally stays fully connected / NumPy-only (`784 → 128 → 64 → 10`).
+
 ## Tooling
 
 This boilerplate uses the following tools to maintain code quality:

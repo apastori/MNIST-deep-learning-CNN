@@ -22,13 +22,15 @@ class Linear(Operation):
 
     def _output(self) -> np.ndarray:
         ## output value of this function is stored in output through forward function in Operation class
-        return as_array(np.dot(self.require_input(), self.weights) + self.bias)
+        return as_array(
+            np.dot(self._require_input(), self.weights) + self.bias
+        )
 
     """Backward Pass during Training"""
 
     def _input_grad(self, grad: np.ndarray) -> np.ndarray:
         self.grad_weights: np.ndarray = as_array(
-            np.dot(self.require_input().T, grad)
+            np.dot(self._require_input().T, grad)
         )
         self.grad_bias: np.ndarray = np.sum(grad, axis=0, keepdims=True)
         return as_array(np.dot(grad, self.weights.T))
