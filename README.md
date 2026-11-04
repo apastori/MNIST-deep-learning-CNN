@@ -40,6 +40,7 @@ All of the commands below run `python -m mnistnn`, which calls `train_mnist()` w
 - batch size 64
 - learning rate 0.05 (decayed by 0.9 after each epoch)
 - SGD momentum 0.9
+- L2 weight decay `1e-4` (weights only)
 - dropout `0.1` / `0.2` on the two hidden layers
 - digit-safe train augmentation (±2 px shift, ±8° rotation, each ~50% chance)
 - pixel values scaled to `[-0.5, 0.5]`

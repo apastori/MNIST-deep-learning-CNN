@@ -56,6 +56,7 @@ def train_mnist(
     batch_size: int = 64,
     learning_rate: float = 0.05,
     momentum: float = 0.9,
+    weight_decay: float = 1e-4,
     visualize: bool = True,
     append_logs: bool = True,
 ) -> MNISTNeuralNetwork:
@@ -68,16 +69,19 @@ def train_mnist(
         raise ValueError('learning_rate must be greater than zero')
     if momentum < 0.0 or momentum >= 1.0:
         raise ValueError('momentum must be in the range [0, 1)')
+    if weight_decay < 0.0:
+        raise ValueError('weight_decay must be greater than or equal to zero')
 
     log_path = configure_file_logging(logger, append=append_logs)
     logger.info('Writing MNIST training logs to %s', log_path)
     logger.info(
         'Starting MNIST training (epochs=%d, batch_size=%d, '
-        'learning_rate=%g, momentum=%g, visualize=%s)',
+        'learning_rate=%g, momentum=%g, weight_decay=%g, visualize=%s)',
         epochs,
         batch_size,
         learning_rate,
         momentum,
+        weight_decay,
         visualize,
     )
 
@@ -190,6 +194,7 @@ def train_mnist(
                 batch_targets,
                 current_learning_rate,
                 momentum,
+                weight_decay,
             )
             total_loss += avg_loss * len(batch_indices)
         # Evaluate the model on the test set after each epoch

@@ -84,9 +84,12 @@ class MNISTNeuralNetwork:
         return self.loss_fn.forward(predictions, targets)
 
     def update_parameters(
-        self, learning_rate: float, momentum: float = 0.9
+        self,
+        learning_rate: float,
+        momentum: float = 0.9,
+        weight_decay: float = 1e-4,
     ) -> None:
-        """Update weights and biases using SGD with momentum."""
+        """Update weights and biases using SGD with momentum and L2 decay."""
         if self._weight_velocities is None or self._bias_velocities is None:
             self._weight_velocities = []
             self._bias_velocities = []
@@ -112,7 +115,9 @@ class MNISTNeuralNetwork:
             bias_velocity = momentum * self._bias_velocities[index] + grad_bias
             self._weight_velocities[index] = weight_velocity
             self._bias_velocities[index] = bias_velocity
-            weights -= learning_rate * weight_velocity
+            weights -= learning_rate * (
+                weight_velocity + weight_decay * weights
+            )
             bias -= learning_rate * bias_velocity
 
     def train_step(
@@ -121,6 +126,7 @@ class MNISTNeuralNetwork:
         y: np.ndarray,
         learning_rate: float,
         momentum: float = 0.9,
+        weight_decay: float = 1e-4,
     ) -> float:
         """Perform a single training step."""
         # Forward pass
@@ -134,7 +140,7 @@ class MNISTNeuralNetwork:
         self.backward(grad)
 
         # Update parameters
-        self.update_parameters(learning_rate, momentum)
+        self.update_parameters(learning_rate, momentum, weight_decay)
 
         return loss
 
