@@ -30,19 +30,22 @@ LEARNING_RATE_FLOOR: float = 1e-4
 
 
 def _prepare_images(images: np.ndarray, dataset_name: str) -> np.ndarray:
-    """Validate MNIST image dimensions and flatten image batches."""
-    if images.ndim == 3:
-        if images.shape[1:] != (28, 28):
-            raise ValueError(
-                f'{dataset_name} images must have shape (N, 28, 28), '
-                f'got {images.shape}'
-            )
-        return images.reshape(images.shape[0], -1)
-    if images.ndim == 2 and images.shape[1] == 784:
+    """Validate MNIST image dimensions and add a channel axis.
+
+    Returns batches shaped ``(N, 1, 28, 28)`` for CNN-style input.
+    """
+    # if images have correct shape (N, 1, 28, 28), return them
+    if images.ndim == 4 and images.shape[1:] == (1, 28, 28):
         return images
+    # if images have shape (N, 28, 28), add a channel axis
+    if images.ndim == 3 and images.shape[1:] == (28, 28):
+        return np.expand_dims(images, axis=1)
+    # if images have shape (N, 784), reshape them to (N, 1, 28, 28)
+    if images.ndim == 2 and images.shape[1] == 784:
+        return images.reshape(images.shape[0], 1, 28, 28)
     raise ValueError(
-        f'{dataset_name} images must have shape (N, 28, 28) or (N, 784), '
-        f'got {images.shape}'
+        f'{dataset_name} images must have shape (N, 28, 28), '
+        f'(N, 1, 28, 28), or (N, 784), got {images.shape}'
     )
 
 

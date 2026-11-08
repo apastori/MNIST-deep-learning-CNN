@@ -1,4 +1,4 @@
-"""Provide digit-safe image augmentation helpers for 28x28 MNIST batches."""
+"""Provide digit-safe image augmentation helpers for (N, 1, 28, 28) MNIST batches."""
 
 from __future__ import annotations
 
@@ -59,22 +59,24 @@ def random_shift_and_rotate(
     max_rotation_degrees: float = MAX_ROTATION_DEGREES,
     fill_value: float = AUGMENT_FILL_VALUE,
 ) -> np.ndarray:
-    """Apply random ±shift and ±rotation to each flattened MNIST image.
+    """Apply random ±shift and ±rotation to each MNIST image batch.
 
     Each transform is applied independently with probability
     ``AUGMENT_PROBABILITY``. Intended for training batches only. Images must
-    already be normalized to approximately ``[-0.5, 0.5]``.
+    already be normalized to approximately ``[-0.5, 0.5]`` and shaped
+    ``(N, 1, 28, 28)``.
     """
-    if images.ndim != 2 or images.shape[1] != 784:
+    if images.ndim != 4 or images.shape[1:] != (1, 28, 28):
         raise ValueError(
-            f'Images to augment must have shape (N, 784), got {images.shape}'
+            f'Images to augment must have shape (N, 1, 28, 28), '
+            f'got {images.shape}'
         )
     if max_shift < 0:
         raise ValueError('max_shift must be non-negative')
     if max_rotation_degrees < 0.0:
         raise ValueError('max_rotation_degrees must be non-negative')
 
-    batch: np.ndarray = images.reshape(-1, 28, 28).copy()
+    batch: np.ndarray = np.squeeze(images, axis=1).copy()
     for index in range(len(batch)):
         augmented: np.ndarray = batch[index]
         if rng.random() < AUGMENT_PROBABILITY:
@@ -91,4 +93,4 @@ def random_shift_and_rotate(
             if abs(angle) > 1e-8:
                 augmented = _rotate_image(augmented, angle, fill_value)
         batch[index] = augmented
-    return batch.reshape(-1, 784)
+    return np.expand_dims(batch, axis=1)
