@@ -1,4 +1,4 @@
-"""Provide a layer combining a linear transformation and activation."""
+"""Provide a dense layer combining a linear transformation and activation."""
 
 import numpy as np
 
@@ -8,8 +8,8 @@ from mnistnn.layer_parent import LayerParent
 from mnistnn.operation import Operation
 
 
-class Layer(LayerParent):
-    """Layer combining linear transformation, activation, and optional dropout."""
+class DenseLayer(LayerParent):
+    """Dense layer: linear transformation, activation, and optional dropout."""
 
     def __init__(
         self,

@@ -5,7 +5,7 @@ import numpy as np
 from mnistnn.functions.CrossEntropyLoss import CrossEntropyLoss
 from mnistnn.functions.ReLU import ReLU
 from mnistnn.functions.SoftmaxStable import SoftmaxStable
-from mnistnn.layer import Layer
+from mnistnn.dense_layer import DenseLayer
 from mnistnn.layer_parent import LayerParent
 from mnistnn.loss import Loss
 
@@ -15,28 +15,30 @@ class MNISTNeuralNetwork:
 
     Architecture:
     - Input: 784 (28x28 flattened)
-    - Hidden Layer 1: 128 units with ReLU and dropout 0.1
-    - Hidden Layer 2: 64 units with ReLU and dropout 0.2
-    - Output Layer: 10 units with Softmax
+    - Hidden dense layer 1: 128 units with ReLU and dropout 0.1
+    - Hidden dense layer 2: 64 units with ReLU and dropout 0.2
+    - Output dense layer: 10 units with Softmax
     """
 
     def __init__(self) -> None:
         """Initialize the network layers and loss function."""
         # Initialize layers
         self.layers: list[LayerParent] = [
-            Layer(
+            DenseLayer(
                 input_size=784,
                 output_size=128,
                 activation=ReLU(),
                 dropout_rate=0.1,
             ),
-            Layer(
+            DenseLayer(
                 input_size=128,
                 output_size=64,
                 activation=ReLU(),
                 dropout_rate=0.2,
             ),
-            Layer(input_size=64, output_size=10, activation=SoftmaxStable()),
+            DenseLayer(
+                input_size=64, output_size=10, activation=SoftmaxStable()
+            ),
         ]
         # Loss function
         self.loss_fn: Loss = CrossEntropyLoss()
@@ -47,7 +49,7 @@ class MNISTNeuralNetwork:
     def _set_training(self, training: bool) -> None:
         """Enable or disable dropout on every dense layer."""
         for layer in self.layers:
-            if isinstance(layer, Layer):
+            if isinstance(layer, DenseLayer):
                 layer.training = training
 
     def forward(self, input_: np.ndarray, training: bool = True) -> np.ndarray:
