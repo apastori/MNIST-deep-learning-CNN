@@ -16,7 +16,7 @@ Evaluation metric is **top-1 accuracy on the official MNIST test set** (10,000 i
 
 **How to read these numbers:** report the **final-epoch** test accuracy as the result for the model returned by `train_mnist()`. Peak-over-epochs is sometimes slightly higher but is not checkpointed unless you add that yourself.
 
-For context, a small fully connected NumPy MLP on MNIST commonly lands in the high 97% range. Small CNNs usually push past 99%; this project intentionally stays fully connected / NumPy-only (`784 → 128 → 64 → 10`).
+For context, a small fully connected NumPy MLP on MNIST commonly lands in the high 97% range. This project is a from-scratch NumPy CNN (`1→32 Conv + Pool`, `32→64 Conv + Pool`, Flatten, `3136→128→10`). Small CNNs usually push past 99%; results above still reflect earlier MLP runs until retrained.
 
 ## Tooling
 

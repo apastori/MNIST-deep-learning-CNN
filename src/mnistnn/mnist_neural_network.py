@@ -2,49 +2,79 @@
 
 import numpy as np
 
+from mnistnn.conv_layer import ConvLayer
+from mnistnn.dense_layer import DenseLayer
+from mnistnn.flatten_layer import FlattenLayer
 from mnistnn.functions.CrossEntropyLoss import CrossEntropyLoss
 from mnistnn.functions.ReLU import ReLU
 from mnistnn.functions.SoftmaxStable import SoftmaxStable
-from mnistnn.dense_layer import DenseLayer
 from mnistnn.layer_parent import LayerParent
 from mnistnn.loss import Loss
+from mnistnn.max_pool_layer import MaxPoolLayer
+
+# After two 2x2 pools: 28 -> 14 -> 7; with 64 channels: 64 * 7 * 7
+_FLAT_FEATURES: int = 64 * 7 * 7
 
 
 class MNISTNeuralNetwork:
-    """Neural network for MNIST digit classification.
+    """Convolutional neural network for MNIST digit classification.
 
-    Architecture:
-    - Input: 784 (28x28 flattened)
-    - Hidden dense layer 1: 128 units with ReLU and dropout 0.1
-    - Hidden dense layer 2: 64 units with ReLU and dropout 0.2
-    - Output dense layer: 10 units with Softmax
+    Architecture (channels-first input ``(N, 1, 28, 28)``):
+    - ConvLayer: 1 -> 32 channels, ReLU (no built-in pool)
+    - MaxPoolLayer: 2x2
+    - ConvLayer: 32 -> 64 channels, ReLU (no built-in pool)
+    - MaxPoolLayer: 2x2
+    - FlattenLayer
+    - DenseLayer: 3136 -> 128 with ReLU and dropout 0.2
+    - DenseLayer: 128 -> 10 with Softmax
     """
 
     def __init__(self) -> None:
         """Initialize the network layers and loss function."""
-        # Initialize layers
         self.layers: list[LayerParent] = [
-            DenseLayer(
-                input_size=784,
-                output_size=128,
+            ConvLayer(
+                in_channels=1,
+                out_channels=32,
+                kernel_size=3,
+                padding=1,
                 activation=ReLU(),
-                dropout_rate=0.1,
+                pool_size=None,
             ),
+            MaxPoolLayer(kernel_size=2),
+            ConvLayer(
+                in_channels=32,
+                out_channels=64,
+                kernel_size=3,
+                padding=1,
+                activation=ReLU(),
+                pool_size=None,
+            ),
+            MaxPoolLayer(kernel_size=2),
+            FlattenLayer(),
+            # with Flatten the number of features is the number of channels * the number of pixels
+            # in this case 64 * 7 * 7 = 3136
             DenseLayer(
-                input_size=128,
-                output_size=64,
+                input_size=_FLAT_FEATURES,
+                output_size=128,
                 activation=ReLU(),
                 dropout_rate=0.2,
             ),
             DenseLayer(
-                input_size=64, output_size=10, activation=SoftmaxStable()
+                input_size=128, output_size=10, activation=SoftmaxStable()
             ),
         ]
-        # Loss function
         self.loss_fn: Loss = CrossEntropyLoss()
-        # SGD momentum buffers, allocated on the first parameter update
+        # SGD momentum buffers for trainable layers only
         self._weight_velocities: list[np.ndarray] | None = None
         self._bias_velocities: list[np.ndarray] | None = None
+
+    def _trainable_layers(self) -> list[LayerParent]:
+        """Return layers that expose weights and biases for SGD."""
+        return [
+            layer
+            for layer in self.layers
+            if isinstance(layer, (ConvLayer, DenseLayer))
+        ]
 
     def _set_training(self, training: bool) -> None:
         """Enable or disable dropout on every dense layer."""
@@ -55,14 +85,11 @@ class MNISTNeuralNetwork:
     def forward(self, input_: np.ndarray, training: bool = True) -> np.ndarray:
         """Perform a forward pass through the network."""
         self._set_training(training)
-        # Flatten input if needed (batch_size, 28, 28) -> (batch_size, 784)
-        if len(input_.shape) == 3:
-            if input_.shape[1:] != (28, 28):
-                raise ValueError(
-                    f"Expected images with shape (batch_size, 28, 28), "
-                    f"got {input_.shape}"
-                )
-            input_ = input_.reshape(input_.shape[0], -1)
+        if input_.ndim != 4 or input_.shape[1:] != (1, 28, 28):
+            raise ValueError(
+                f'Expected images with shape (batch_size, 1, 28, 28), '
+                f'got {input_.shape}'
+            )
 
         x: np.ndarray = input_
         for layer in self.layers:
@@ -92,17 +119,18 @@ class MNISTNeuralNetwork:
         weight_decay: float = 1e-4,
     ) -> None:
         """Update weights and biases using SGD with momentum and L2 decay."""
+        trainable_layers: list[LayerParent] = self._trainable_layers()
         if self._weight_velocities is None or self._bias_velocities is None:
             self._weight_velocities = []
             self._bias_velocities = []
-            for layer in self.layers:
+            for layer in trainable_layers:
                 init_weights: np.ndarray
                 init_bias: np.ndarray
                 init_weights, init_bias = layer.get_params()
                 self._weight_velocities.append(np.zeros_like(init_weights))
                 self._bias_velocities.append(np.zeros_like(init_bias))
 
-        for index, layer in enumerate(self.layers):
+        for index, layer in enumerate(trainable_layers):
             weights: np.ndarray
             bias: np.ndarray
             weights, bias = layer.get_params()
@@ -131,19 +159,11 @@ class MNISTNeuralNetwork:
         weight_decay: float = 1e-4,
     ) -> float:
         """Perform a single training step."""
-        # Forward pass
         predictions: np.ndarray = self.forward(x, training=True)
-
-        # Compute loss
         loss: float = self._compute_loss(predictions, y)
-
-        # Backward pass
         grad: np.ndarray = self.loss_fn.backward()
         self._backward(grad)
-
-        # Update parameters
         self._update_parameters(learning_rate, momentum, weight_decay)
-
         return loss
 
     def predict(self, x: np.ndarray) -> np.ndarray:
@@ -155,7 +175,6 @@ class MNISTNeuralNetwork:
         """Evaluate accuracy on a dataset."""
         predictions: np.ndarray = self.predict(x)
 
-        # Convert one-hot encoded labels to class indices if needed
         labels: np.ndarray = y
         if len(y.shape) == 2:
             labels = np.asarray(np.argmax(y, axis=1))
