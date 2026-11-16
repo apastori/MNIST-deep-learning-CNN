@@ -22,9 +22,11 @@ class Flatten(Operation):
                 f'Flatten expects at least 2 dimensions (batch, ...), '
                 f'got shape {input_.shape}'
             )
+        # Reshape the input to 2D (B, F) where F is the product of the remaining axes
         return as_array(input_.reshape(input_.shape[0], -1))
 
     def _input_grad(self, grad: np.ndarray) -> np.ndarray:
         """Restore the spatial (or original) shape of the input gradient."""
         input_: np.ndarray = self._require_input()
+        # Reshape the gradient to the original input shape
         return as_array(grad.reshape(input_.shape))
