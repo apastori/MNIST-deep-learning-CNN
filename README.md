@@ -8,15 +8,14 @@ Evaluation metric is **top-1 accuracy on the official MNIST test set** (10,000 i
 
 | Metric | Typical value |
 |---|---|
-| Test accuracy (final epoch) | **~97.6–97.9%** |
-| Test accuracy (best epoch during training) | **~97.8–97.9%** |
-| Train loss (final epoch) | ~0.17–0.20 |
-| Epochs | 25 |
-| Wall time (CPU, approx.) | ~2 minutes |
+| Test accuracy (final epoch) | TBD after CNN retrain (target often **>98–99%**) |
+| Train loss (final epoch) | TBD after CNN retrain |
+| Epochs | 12 |
+| Wall time (CPU, approx.) | much longer than the old MLP (pure-NumPy conv) |
 
 **How to read these numbers:** report the **final-epoch** test accuracy as the result for the model returned by `train_mnist()`. Peak-over-epochs is sometimes slightly higher but is not checkpointed unless you add that yourself.
 
-For context, a small fully connected NumPy MLP on MNIST commonly lands in the high 97% range. This project is a from-scratch NumPy CNN (`1→32 Conv + Pool`, `32→64 Conv + Pool`, Flatten, `3136→128→10`). Small CNNs usually push past 99%; results above still reflect earlier MLP runs until retrained.
+This project is a from-scratch NumPy CNN (`1→32 Conv + Pool`, `32→64 Conv + Pool`, Flatten, `3136→128→10`). Small CNNs on MNIST often push past 99%; retrain with the defaults below and update this table from `log/mnist-training.log`.
 
 ## Tooling
 
@@ -52,14 +51,14 @@ Install dependencies first (`invoke install` or `make install`). Run every comma
 
 All of the commands below run `python -m mnistnn`, which calls `train_mnist()` with these defaults:
 
-- 25 epochs
+- 12 epochs
 - batch size 64
-- learning rate 0.05 (decayed by 0.9 after each epoch)
+- learning rate 0.01 (decayed by 0.9 after each epoch, floor `1e-4`)
 - SGD momentum 0.9
 - L2 weight decay `1e-4` (weights only)
-- dropout `0.1` / `0.2` on the two hidden layers
+- dropout `0.2` on the dense hidden layer (`3136 → 128`)
 - digit-safe train augmentation (±2 px shift, ±8° rotation, each ~50% chance)
-- pixel values scaled to `[-0.5, 0.5]`
+- pixel values scaled to `[-0.5, 0.5]`, input shape `(N, 1, 28, 28)`
 - sample plots enabled (`visualize=True`)
 
 Training progress is written to `log/mnist-training.log`.

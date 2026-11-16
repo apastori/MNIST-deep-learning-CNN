@@ -55,9 +55,9 @@ def _normalize_images(images: np.ndarray) -> np.ndarray:
 
 
 def train_mnist(
-    epochs: int = 25,
+    epochs: int = 12,
     batch_size: int = 64,
-    learning_rate: float = 0.05,
+    learning_rate: float = 0.01,
     momentum: float = 0.9,
     weight_decay: float = 1e-4,
     visualize: bool = True,
