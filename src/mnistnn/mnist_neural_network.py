@@ -220,4 +220,3 @@ class MNISTNeuralNetwork:
                 bias[:] = loaded_bias
         self._weight_velocities = None
         self._bias_velocities = None
-

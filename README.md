@@ -1,21 +1,36 @@
 # Basic Deep Learning MNIST
 
-From-scratch NumPy neural network for MNIST digit classification, plus Black, Ruff, and MyPy for code quality.
+From-scratch NumPy **CNN** for MNIST digit classification, plus Black, Ruff, and MyPy for code quality.
+
+## Architecture
+
+Channels-first input shape: `(N, 1, 28, 28)`.
+
+| Stage | Layer | Details |
+|---|---|---|
+| 1 | Conv2D + ReLU | 1 → 32 filters, kernel 3×3, padding 1 (keeps 28×28) |
+| 2 | MaxPool2D | 2×2, stride 2 → 14×14 |
+| 3 | Conv2D + ReLU | 32 → 64 filters, kernel 3×3, padding 1 (keeps 14×14) |
+| 4 | MaxPool2D | 2×2, stride 2 → 7×7 |
+| 5 | Flatten | 64 × 7 × 7 = 3136 features |
+| 6 | Dense + ReLU + Dropout | 3136 → 128, dropout 0.2 |
+| 7 | Dense + Softmax | 128 → 10 class probabilities |
+
+Loss is cross-entropy. Optimizer is SGD with momentum and L2 weight decay on weights only. Trained weights are stored in `models/mnist_cnn.npz`.
 
 ## Results
 
-Evaluation metric is **top-1 accuracy on the official MNIST test set** (10,000 images). Training loss is mean batch cross-entropy over the epoch. Numbers below are from completed default runs logged in `log/mnist-training.log` and can vary slightly by random seed.
+Training loss is mean batch cross-entropy over the epoch. Numbers below are from the completed default CNN run logged in `log/mnist-training.log` (and confirmed by reloading `models/mnist_cnn.npz`).
 
-| Metric | Typical value |
+| Metric | Value |
 |---|---|
-| Test accuracy (final epoch) | TBD after CNN retrain (target often **>98–99%**) |
-| Train loss (final epoch) | TBD after CNN retrain |
+| Test accuracy (final epoch / saved model) | **99.31%** |
+| Test accuracy (best epoch during training) | **99.37%** (epoch 11) |
+| Train loss (final epoch) | 0.0318 |
 | Epochs | 12 |
-| Wall time (CPU, approx.) | much longer than the old MLP (pure-NumPy conv) |
+| Wall time (CPU) | ~11.0 hours (39620.86s) |
 
-**How to read these numbers:** report the **final-epoch** test accuracy as the result for the model returned by `train_mnist()`. Peak-over-epochs is sometimes slightly higher but is not checkpointed unless you add that yourself.
-
-This project is a from-scratch NumPy CNN (`1→32 Conv + Pool`, `32→64 Conv + Pool`, Flatten, `3136→128→10`). Small CNNs on MNIST often push past 99%; retrain with the defaults below and update this table from `log/mnist-training.log`.
+**How to read these numbers:** report the **final-epoch** test accuracy (**99.31%**) as the result for the model returned by `train_mnist()` and saved to `models/mnist_cnn.npz`. Peak-over-epochs (**99.37%**) was slightly higher but is not checkpointed unless you add that yourself.
 
 ## Tooling
 
@@ -62,6 +77,8 @@ All of the commands below run `python -m mnistnn`, which calls `train_mnist()` w
 - sample plots enabled (`visualize=True`)
 
 Training progress is written to `log/mnist-training.log`.
+
+After a successful training run, weights are saved to `models/mnist_cnn.npz` (Conv and Dense layers only) and can be committed with the repo. On the next `make train` / `invoke train`, if that file exists the network loads it, reports test accuracy, and skips training. Delete `models/mnist_cnn.npz` to force a full retrain.
 
 ### Invoke
 

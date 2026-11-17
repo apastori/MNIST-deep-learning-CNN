@@ -68,12 +68,10 @@ class MaxPool2D(Operation):
                 x_start: int = out_x * stride
                 x_end: int = x_start + kernel
                 # Get the window from the input tensor
-                # All Batch and Channels are kept, 
+                # All Batch and Channels are kept,
                 # only the spatial dimensions are sliced (Height and Width)
                 # The output window shape is 4D (B, C, kh, kw)
-                window: np.ndarray = input_[
-                    :, :, y_start:y_end, x_start:x_end
-                ]
+                window: np.ndarray = input_[:, :, y_start:y_end, x_start:x_end]
                 # Reshape the window to 3D (B, C, kw * kh)
                 flat_window: np.ndarray = window.reshape(
                     batch_size, channels, -1
@@ -111,7 +109,7 @@ class MaxPool2D(Operation):
         stride: int = self.stride
         out_h: int = grad.shape[2]
         out_w: int = grad.shape[3]
-        
+
         # Create a new input gradient tensor with the shape (B, C, H, W)
         input_grad: np.ndarray = np.zeros_like(input_)
 

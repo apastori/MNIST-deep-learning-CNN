@@ -42,10 +42,9 @@ class Conv2D(Operation):
         # Define the weights matrix with shape 4D (out_channels, in_channels, kernel_size, kernel_size)
         # Initialize the weights matrix with random values from a normal distribution with mean 0 and standard deviation sqrt(2.0 / fan_in)
         # He initialization
-        self.weights: np.ndarray = (
-            np.random.randn(out_channels, in_channels, kernel_size, kernel_size)
-            * np.sqrt(2.0 / fan_in)
-        )
+        self.weights: np.ndarray = np.random.randn(
+            out_channels, in_channels, kernel_size, kernel_size
+        ) * np.sqrt(2.0 / fan_in)
         # Create a bias vector with shape (out_channels) 1-D array of zeros
         self.bias: np.ndarray = np.zeros(out_channels, dtype=np.float64)
         self.grad_weights: np.ndarray | None = None
@@ -128,16 +127,14 @@ class Conv2D(Operation):
         cols_reshaped: np.ndarray = cols.reshape(
             batch_size, channels, kernel, kernel, out_h, out_w
         )
-        input_grad: np.ndarray = np.zeros(
-            padded_shape, dtype=cols.dtype
-        )
+        input_grad: np.ndarray = np.zeros(padded_shape, dtype=cols.dtype)
         for ky in range(kernel):
             y_end: int = ky + stride * out_h
             for kx in range(kernel):
                 x_end: int = kx + stride * out_w
-                input_grad[:, :, ky:y_end:stride, kx:x_end:stride] += (
-                    cols_reshaped[:, :, ky, kx, :, :]
-                )
+                input_grad[
+                    :, :, ky:y_end:stride, kx:x_end:stride
+                ] += cols_reshaped[:, :, ky, kx, :, :]
         return input_grad
 
     def _output(self) -> np.ndarray:
@@ -172,9 +169,7 @@ class Conv2D(Operation):
         output += bias
         # Reshape the output to (N, out_channels, out_h, out_w)
         return as_array(
-            output.reshape(
-                input_.shape[0], self.out_channels, out_h, out_w
-            )
+            output.reshape(input_.shape[0], self.out_channels, out_h, out_w)
         )
 
     def _input_grad(self, grad: np.ndarray) -> np.ndarray:
@@ -193,8 +188,8 @@ class Conv2D(Operation):
             batch_size, self.out_channels, out_h * out_w
         )
 
-        # Lets sum the gradient over the Batch size and the spatial dimensions (H and W) (Axis 0, 2, and 3) 
-        #to get the bias gradient
+        # Lets sum the gradient over the Batch size and the spatial dimensions (H and W) (Axis 0, 2, and 3)
+        # to get the bias gradient
         # The output shape is 1D (out_channels)
         self.grad_bias = as_array(np.sum(grad, axis=(0, 2, 3)))
 
@@ -204,7 +199,7 @@ class Conv2D(Operation):
         )
 
         # Reshape the weights gradient to the weights shape
-        # from 2D (out_channels, in_channels * kernel_size * kernel_size) 
+        # from 2D (out_channels, in_channels * kernel_size * kernel_size)
         # to 4D (out_channels, in_channels, kernel_size, kernel_size)
         self.grad_weights = as_array(
             weights_grad_mat.reshape(self.weights.shape)
@@ -215,7 +210,9 @@ class Conv2D(Operation):
         weights_mat: np.ndarray = self.weights.reshape(self.out_channels, -1)
         # dCols: (out_c, K)^T @ (N, out_c, HW) -> (N, K, HW)
         # Results Cols Gradient (Batch, in_channels * kw * kh, out_h * out_w)
-        cols_grad: np.ndarray = np.einsum('ok,nop->nkp', weights_mat, grad_flat)
+        cols_grad: np.ndarray = np.einsum(
+            'ok,nop->nkp', weights_mat, grad_flat
+        )
 
         padded_height: int = input_.shape[2] + 2 * self.padding
         padded_width: int = input_.shape[3] + 2 * self.padding
