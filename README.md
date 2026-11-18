@@ -16,21 +16,21 @@ Channels-first input shape: `(N, 1, 28, 28)`.
 | 6 | Dense + ReLU + Dropout | 3136 → 128, dropout 0.2 |
 | 7 | Dense + Softmax | 128 → 10 class probabilities |
 
-Loss is cross-entropy. Optimizer is SGD with momentum and L2 weight decay on weights only. Trained weights are stored in `models/mnist_cnn.npz`.
+Loss is cross-entropy. Optimizer is SGD with momentum and L2 weight decay on weights only. During training the best test accuracy is checkpointed to a temporary `models/mnist_cnn_best.npz`; at the end that checkpoint is restored into `models/mnist_cnn.npz` and the temporary file is deleted, so the only saved artifact is the best epoch (not necessarily the last).
 
 ## Results
 
-Training loss is mean batch cross-entropy over the epoch. Numbers below are from the completed default CNN run logged in `log/mnist-training.log` (and confirmed by reloading `models/mnist_cnn.npz`).
+Training loss is mean batch cross-entropy over the epoch. Numbers below are from the completed default CNN run logged in `log/mnist-training.log` (and confirmed by reloading `models/mnist_cnn.npz`). A retrain with best-checkpointing, 24 epochs / LR decay 0.95, and richer augmentation is in progress; this table will be updated when that run finishes.
 
 | Metric | Value |
 |---|---|
-| Test accuracy (final epoch / saved model) | **99.31%** |
-| Test accuracy (best epoch during training) | **99.37%** (epoch 11) |
-| Train loss (final epoch) | 0.0318 |
-| Epochs | 12 |
-| Wall time (CPU) | ~11.0 hours (39620.86s) |
+| Test accuracy (saved model) | **99.31%** |
+| Test accuracy (best epoch during prior 12-epoch run) | **99.37%** (epoch 11) |
+| Train loss (final epoch of prior run) | 0.0318 |
+| Epochs (prior run / new default) | 12 / 24 |
+| Wall time (CPU, prior run) | ~11.0 hours (39620.86s) |
 
-**How to read these numbers:** report the **final-epoch** test accuracy (**99.31%**) as the result for the model returned by `train_mnist()` and saved to `models/mnist_cnn.npz`. Peak-over-epochs (**99.37%**) was slightly higher but is not checkpointed unless you add that yourself.
+**How to read these numbers:** report the **saved** test accuracy in `models/mnist_cnn.npz` (best epoch after the upgraded trainer).
 
 ## Tooling
 
@@ -66,19 +66,20 @@ Install dependencies first (`invoke install` or `make install`). Run every comma
 
 All of the commands below run `python -m mnistnn`, which calls `train_mnist()` with these defaults:
 
-- 12 epochs
+- 24 epochs
 - batch size 64
-- learning rate 0.01 (decayed by 0.9 after each epoch, floor `1e-4`)
+- learning rate 0.01 (decayed by 0.95 after each epoch, floor `1e-4`)
 - SGD momentum 0.9
 - L2 weight decay `1e-4` (weights only)
 - dropout `0.2` on the dense hidden layer (`3136 → 128`)
-- digit-safe train augmentation (±2 px shift, ±8° rotation, each ~50% chance)
+- digit-safe train augmentation (each ~50% chance): ±2 px shift, ±8° rotation, elastic distortion (`alpha=18`, `sigma=3`), mild scale/zoom in `[0.9, 1.1]`
+- best-epoch checkpointing via temporary `models/mnist_cnn_best.npz`, then copy into `models/mnist_cnn.npz` and delete the temp file
 - pixel values scaled to `[-0.5, 0.5]`, input shape `(N, 1, 28, 28)`
 - sample plots enabled (`visualize=True`)
 
 Training progress is written to `log/mnist-training.log`.
 
-After a successful training run, weights are saved to `models/mnist_cnn.npz` (Conv and Dense layers only) and can be committed with the repo. On the next `make train` / `invoke train`, if that file exists the network loads it, reports test accuracy, and skips training. Delete `models/mnist_cnn.npz` to force a full retrain.
+After a successful training run, the best-epoch weights are saved to `models/mnist_cnn.npz` (Conv and Dense layers only) and can be committed with the repo. On the next `make train` / `invoke train`, if that file exists the network loads it, reports test accuracy, and skips training. Delete `models/mnist_cnn.npz`, or call `train_mnist(force_retrain=True)`, to force a full retrain.
 
 ### Invoke
 
@@ -125,6 +126,12 @@ To train without plot windows, set `PYTHONPATH` as above, then:
 
 ```text
 python -c "from mnistnn.train_mnist import train_mnist; train_mnist(visualize=False)"
+```
+
+To force a full retrain even when `models/mnist_cnn.npz` already exists:
+
+```text
+python -c "from mnistnn.train_mnist import train_mnist; train_mnist(visualize=False, force_retrain=True)"
 ```
 
 ## Available Commands

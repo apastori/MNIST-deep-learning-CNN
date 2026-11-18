@@ -26,10 +26,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-LEARNING_RATE_DECAY: float = 0.9
+LEARNING_RATE_DECAY: float = 0.95
 LEARNING_RATE_FLOOR: float = 1e-4
 MODELS_DIR: Path = Path(__file__).resolve().parents[2] / 'models'
 DEFAULT_WEIGHTS_PATH: Path = MODELS_DIR / 'mnist_cnn.npz'
+BEST_WEIGHTS_PATH: Path = MODELS_DIR / 'mnist_cnn_best.npz'
 
 
 def _prepare_images(images: np.ndarray, dataset_name: str) -> np.ndarray:
@@ -79,13 +80,14 @@ def _evaluate_test_accuracy(
 
 
 def train_mnist(
-    epochs: int = 12,
+    epochs: int = 24,
     batch_size: int = 64,
     learning_rate: float = 0.01,
     momentum: float = 0.9,
     weight_decay: float = 1e-4,
     visualize: bool = True,
     append_logs: bool = True,
+    force_retrain: bool = False,
 ) -> MNISTNeuralNetwork:
     """Load MNIST and train the network, optionally starting a fresh log."""
     if epochs <= 0:
@@ -103,13 +105,15 @@ def train_mnist(
     logger.info('Writing MNIST training logs to %s', log_path)
     logger.info(
         'Starting MNIST training (epochs=%d, batch_size=%d, '
-        'learning_rate=%g, momentum=%g, weight_decay=%g, visualize=%s)',
+        'learning_rate=%g, momentum=%g, weight_decay=%g, visualize=%s, '
+        'force_retrain=%s)',
         epochs,
         batch_size,
         learning_rate,
         momentum,
         weight_decay,
         visualize,
+        force_retrain,
     )
 
     from mnistnn.data_config import dict_config_test, dict_config_train
@@ -191,7 +195,7 @@ def train_mnist(
     train_images = prepared_train_images
     test_images = prepared_test_images
 
-    if DEFAULT_WEIGHTS_PATH.is_file():
+    if DEFAULT_WEIGHTS_PATH.is_file() and not force_retrain:
         logger.info(
             'Found existing weights at %s; loading and skipping training',
             DEFAULT_WEIGHTS_PATH,
@@ -206,13 +210,23 @@ def train_mnist(
         )
         return network
 
+    if force_retrain and DEFAULT_WEIGHTS_PATH.is_file():
+        logger.info(
+            'force_retrain=True; ignoring existing weights at %s',
+            DEFAULT_WEIGHTS_PATH,
+        )
+
     rng: np.random.Generator = np.random.default_rng()
     # generated one-hot encoded targets for the 10 classes (digits 0-9)
     # Matrix 10 X 10
     class_targets: np.ndarray = np.eye(10, dtype=np.float64)
     current_learning_rate: float = learning_rate
+    best_accuracy: float = -1.0
+    best_epoch: int = -1
+    final_epoch_accuracy: float = 0.0
     # Train for the specified number of epochs
     training_started_at: float = perf_counter()
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
     for epoch in range(epochs):
         epoch_started_at: float = perf_counter()
         # Shuffle the training data at the beginning of each epoch
@@ -245,6 +259,7 @@ def train_mnist(
         test_accuracy: float = _evaluate_test_accuracy(
             network, test_images, test_labels, batch_size
         )
+        final_epoch_accuracy = test_accuracy
         logger.info(
             'Epoch %d/%d - loss: %.4f - test accuracy: %.2f%% - '
             'learning_rate=%g - duration: %.2fs',
@@ -255,14 +270,33 @@ def train_mnist(
             current_learning_rate,
             perf_counter() - epoch_started_at,
         )
+        if test_accuracy > best_accuracy:
+            best_accuracy = test_accuracy
+            best_epoch = epoch + 1
+            network.save_weights(BEST_WEIGHTS_PATH)
+            logger.info(
+                'New best test accuracy: %.2f%% (epoch %d); saved to %s',
+                best_accuracy * 100,
+                best_epoch,
+                BEST_WEIGHTS_PATH,
+            )
         current_learning_rate = max(
             current_learning_rate * LEARNING_RATE_DECAY,
             LEARNING_RATE_FLOOR,
         )
 
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    network.load_weights(BEST_WEIGHTS_PATH)
     network.save_weights(DEFAULT_WEIGHTS_PATH)
-    logger.info('Saved trained weights to %s', DEFAULT_WEIGHTS_PATH)
+    BEST_WEIGHTS_PATH.unlink(missing_ok=True)
+    logger.info(
+        'Restored best weights from epoch %d (%.2f%%); saved to %s '
+        '(final-epoch accuracy was %.2f%%); removed temporary %s',
+        best_epoch,
+        best_accuracy * 100,
+        DEFAULT_WEIGHTS_PATH,
+        final_epoch_accuracy * 100,
+        BEST_WEIGHTS_PATH.name,
+    )
     logger.info(
         'MNIST training completed in %.2fs',
         perf_counter() - training_started_at,
