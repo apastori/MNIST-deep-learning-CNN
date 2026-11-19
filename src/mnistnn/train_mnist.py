@@ -80,7 +80,7 @@ def _evaluate_test_accuracy(
 
 
 def train_mnist(
-    epochs: int = 24,
+    epochs: int = 16,
     batch_size: int = 64,
     learning_rate: float = 0.01,
     momentum: float = 0.9,

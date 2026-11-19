@@ -9,10 +9,12 @@ MAX_SHIFT_PIXELS: int = 2
 MAX_ROTATION_DEGREES: float = 8.0
 AUGMENT_FILL_VALUE: float = -0.5
 AUGMENT_PROBABILITY: float = 0.5
-ELASTIC_ALPHA: float = 18.0
+# Defaults disable elastic/scale (mild shift+rotate only). Set alpha > 0 or a
+# non-unit scale range to re-enable those transforms.
+ELASTIC_ALPHA: float = 0.0
 ELASTIC_SIGMA: float = 3.0
-SCALE_RANGE_MIN: float = 0.9
-SCALE_RANGE_MAX: float = 1.1
+SCALE_RANGE_MIN: float = 1.0
+SCALE_RANGE_MAX: float = 1.0
 
 
 def _shift_image(
@@ -215,10 +217,11 @@ def random_shift_and_rotate(
 ) -> np.ndarray:
     """Apply random digit-safe augmentations to each MNIST image batch.
 
-    Independently (each with probability ``AUGMENT_PROBABILITY``): ±shift,
-    ±rotation, elastic distortion, and mild scale/zoom. Intended for training
-    batches only. Images must already be normalized to approximately
-    ``[-0.5, 0.5]`` and shaped ``(N, 1, 28, 28)``.
+    Independently (each with probability ``AUGMENT_PROBABILITY``): ±shift and
+    ±rotation. Elastic distortion runs only when ``elastic_alpha > 0``; scale
+    runs when the scale range is not identically ``1.0``. Defaults use mild
+    shift/rotate only. Intended for training batches only. Images must already
+    be normalized to approximately ``[-0.5, 0.5]`` and shaped ``(N, 1, 28, 28)``.
     """
     if images.ndim != 4 or images.shape[1:] != (1, 28, 28):
         raise ValueError(
@@ -258,7 +261,9 @@ def random_shift_and_rotate(
             augmented = _elastic_distort_image(
                 augmented, rng, elastic_alpha, elastic_sigma, fill_value
             )
-        if rng.random() < AUGMENT_PROBABILITY:
+        if (scale_min != 1.0 or scale_max != 1.0) and rng.random() < (
+            AUGMENT_PROBABILITY
+        ):
             scale: float = float(rng.uniform(scale_min, scale_max))
             augmented = _scale_image(augmented, scale, fill_value)
         batch[index] = augmented

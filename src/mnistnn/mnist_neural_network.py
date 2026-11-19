@@ -27,8 +27,8 @@ class MNISTNeuralNetwork:
     - ConvLayer: 32 -> 64 channels, ReLU (no built-in pool)
     - MaxPoolLayer: 2x2
     - FlattenLayer
-    - DenseLayer: 3136 -> 128 with ReLU and dropout 0.2
-    - DenseLayer: 128 -> 10 with Softmax
+    - DenseLayer: 3136 -> 256 with ReLU and dropout 0.2
+    - DenseLayer: 256 -> 10 with Softmax
     """
 
     def __init__(self) -> None:
@@ -57,12 +57,12 @@ class MNISTNeuralNetwork:
             # in this case 64 * 7 * 7 = 3136
             DenseLayer(
                 input_size=_FLAT_FEATURES,
-                output_size=128,
+                output_size=256,
                 activation=ReLU(),
                 dropout_rate=0.2,
             ),
             DenseLayer(
-                input_size=128, output_size=10, activation=SoftmaxStable()
+                input_size=256, output_size=10, activation=SoftmaxStable()
             ),
         ]
         self.loss_fn: Loss = CrossEntropyLoss()

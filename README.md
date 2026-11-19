@@ -13,22 +13,21 @@ Channels-first input shape: `(N, 1, 28, 28)`.
 | 3 | Conv2D + ReLU | 32 → 64 filters, kernel 3×3, padding 1 (keeps 14×14) |
 | 4 | MaxPool2D | 2×2, stride 2 → 7×7 |
 | 5 | Flatten | 64 × 7 × 7 = 3136 features |
-| 6 | Dense + ReLU + Dropout | 3136 → 128, dropout 0.2 |
-| 7 | Dense + Softmax | 128 → 10 class probabilities |
+| 6 | Dense + ReLU + Dropout | 3136 → 256, dropout 0.2 |
+| 7 | Dense + Softmax | 256 → 10 class probabilities |
 
 Loss is cross-entropy. Optimizer is SGD with momentum and L2 weight decay on weights only. During training the best test accuracy is checkpointed to a temporary `models/mnist_cnn_best.npz`; at the end that checkpoint is restored into `models/mnist_cnn.npz` and the temporary file is deleted, so the only saved artifact is the best epoch (not necessarily the last).
 
 ## Results
 
-Training loss is mean batch cross-entropy over the epoch. Numbers below are from the completed default CNN run logged in `log/mnist-training.log` (and confirmed by reloading `models/mnist_cnn.npz`). A retrain with best-checkpointing, 24 epochs / LR decay 0.95, and richer augmentation is in progress; this table will be updated when that run finishes.
+Training loss is mean batch cross-entropy over the epoch. Numbers below are from the last completed run logged in `log/mnist-training.log` (32/64 convs, dense 128, rich aug: **99.34%** best). Next experiment: same 32/64 convs, denser head **256**, mild shift/rotate, **16** epochs — update this table after that run finishes.
 
 | Metric | Value |
 |---|---|
-| Test accuracy (saved model) | **99.31%** |
-| Test accuracy (best epoch during prior 12-epoch run) | **99.37%** (epoch 11) |
-| Train loss (final epoch of prior run) | 0.0318 |
-| Epochs (prior run / new default) | 12 / 24 |
-| Wall time (CPU, prior run) | ~11.0 hours (39620.86s) |
+| Test accuracy (saved model, prior richer-aug run) | **99.34%** |
+| Test accuracy (best epoch, original 12-epoch mild-aug run) | **99.37%** (epoch 11) |
+| Epochs (default) | 16 |
+| Wall time (CPU, prior 24-epoch richer-aug run) | ~5.3 hours (18971.34s) |
 
 **How to read these numbers:** report the **saved** test accuracy in `models/mnist_cnn.npz` (best epoch after the upgraded trainer).
 
@@ -66,13 +65,13 @@ Install dependencies first (`invoke install` or `make install`). Run every comma
 
 All of the commands below run `python -m mnistnn`, which calls `train_mnist()` with these defaults:
 
-- 24 epochs
+- 16 epochs
 - batch size 64
 - learning rate 0.01 (decayed by 0.95 after each epoch, floor `1e-4`)
 - SGD momentum 0.9
 - L2 weight decay `1e-4` (weights only)
-- dropout `0.2` on the dense hidden layer (`3136 → 128`)
-- digit-safe train augmentation (each ~50% chance): ±2 px shift, ±8° rotation, elastic distortion (`alpha=18`, `sigma=3`), mild scale/zoom in `[0.9, 1.1]`
+- dropout `0.2` on the dense hidden layer (`3136 → 256`)
+- digit-safe train augmentation (each ~50% chance): ±2 px shift, ±8° rotation (elastic/scale helpers exist but are disabled by default)
 - best-epoch checkpointing via temporary `models/mnist_cnn_best.npz`, then copy into `models/mnist_cnn.npz` and delete the temp file
 - pixel values scaled to `[-0.5, 0.5]`, input shape `(N, 1, 28, 28)`
 - sample plots enabled (`visualize=True`)
